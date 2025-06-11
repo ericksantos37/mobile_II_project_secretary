@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_a2/models/curso.dart';
 import 'package:provider/provider.dart';
 
 import '../models/aluno.dart';
 import '../models/matricula_disciplina.dart';
 import '../providers/aluno_provider.dart';
+import '../services/cursoService.dart';
 import '../services/matriculaDisciplinaService.dart';
 import '../services/disciplinaService.dart';
 
@@ -21,11 +23,15 @@ class BoletimScreen extends StatelessWidget {
 
     final matriculaService = MatriculaDisciplinaService();
     final disciplinaService = DisciplinaService();
+    final cursoService = CursoService();
 
     final disciplinasAluno = matriculaService.getByAluno(aluno.id);
-    print('ID do aluno logado: ${aluno.id}');
-    print('Disciplinas encontradas: ${disciplinasAluno.length}');
-    print('Disciplinas encontradas: ${disciplinasAluno}');
+    final disciplina = disciplinaService.getById(disciplinasAluno.first.disciplinaId);
+    final curso = cursoService.getById(disciplina!.cursoId);
+
+    if (curso == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -37,7 +43,7 @@ class BoletimScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(aluno),
+            _buildHeader(aluno, curso),
             const SizedBox(height: 20),
             _buildInfoCurso(),
             const SizedBox(height: 20),
@@ -51,17 +57,17 @@ class BoletimScreen extends StatelessWidget {
   }
 
 
-  Widget _buildHeader(Aluno aluno) {
+  Widget _buildHeader(Aluno aluno, Curso curso) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'SISTEMAS DE INFORMAÇÃO (Matriculado)',
+        Text(
+          '${curso.nome} (Matriculado)',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Boletim Acadêmico - SISTEMAS DE INFORMAÇÃO',
+        Text(
+          'Boletim Acadêmico - ${curso.nome}',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),

@@ -21,4 +21,8 @@ class DisciplinaService {
     return _disciplinas.firstWhere((d) => d.id == id, orElse: () => null as Disciplina);
   }
 
+  List<Disciplina> getByCursoId(int cursoId) {
+    return _disciplinas.where((d) => d.cursoId == cursoId).toList();
+  }
+
 }

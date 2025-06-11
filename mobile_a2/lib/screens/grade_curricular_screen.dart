@@ -1,42 +1,71 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../models/aluno.dart';
+import '../models/disciplina.dart';
+import '../models/curso.dart';
+import '../providers/aluno_provider.dart';
+import '../services/cursoService.dart';
+import '../services/disciplinaService.dart';
 
 class GradeCurricularScreen extends StatelessWidget {
   const GradeCurricularScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final alunoProvider = Provider.of<AlunoProvider>(context);
+    final aluno = alunoProvider.aluno;
+
+    if (aluno == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final cursoService = CursoService();
+    final disciplinaService = DisciplinaService();
+    final curso = cursoService.getById(aluno.cursoId);
+
+    if (curso == null) {
+      return const Scaffold(
+        body: Center(child: Text('Curso não encontrado')),
+      );
+    }
+
+    // ✅ Usando o novo método para pegar disciplinas do curso
+    final disciplinas = disciplinaService.getByCursoId(curso.id);
+
+    // ✅ Agrupar por período
+    final Map<int, List<Disciplina>> disciplinasPorPeriodo = {};
+    for (var d in disciplinas) {
+      disciplinasPorPeriodo.putIfAbsent(d.periodo, () => []).add(d);
+    }
+
+    final periodosOrdenados = disciplinasPorPeriodo.keys.toList()..sort();
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('SISTEMAS DE INFORMAÇÃO (Matriculado)'),
+        title: Text('${curso.nome} (Matriculado)'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Matriz Curricular - SISTEMAS DE INFORMAÇÃO',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Text(
+              'Matriz Curricular - ${curso.nome}',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
-            _buildPeriodo(
-              '1º Período',
-              [
-                '011001131    ALGORITMOS E PROGRAMAÇÃO I',
-                '011001132    ARQUITETURA E ORGANIZAÇÃO DE COMPUTADORES I',
-                '011001133    DESENVOLVIMENTO PRONT-SND',
-                '011001134    INGLÊS INSTRUMENTAL',
-                '011001135    LEITURA E PRÁTICA DE PRODUÇÃO TEXTUAL',
-              ],
-            ),
-            // ... outros períodos (mantidos iguais)
+            for (var periodo in periodosOrdenados)
+              _buildPeriodo('${periodo}º Período', disciplinasPorPeriodo[periodo]!),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPeriodo(String title, List<String> disciplinas) {
+  Widget _buildPeriodo(String title, List<Disciplina> disciplinas) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -47,38 +76,39 @@ class GradeCurricularScreen extends StatelessWidget {
         const SizedBox(height: 10),
         Container(
           decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(4.0)),
+            border: Border.all(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(4.0),
+          ),
           child: Column(
-            children: [
-              for (var disciplina in disciplinas)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12.0, vertical: 8.0),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(
-                        color: Colors.grey.shade300,
-                        width: 1.0,
-                      ),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 8.0,
-                        height: 8.0,
-                        margin: const EdgeInsets.only(right: 12.0),
-                        decoration: BoxDecoration(
-                          color: Colors.blue,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      Expanded(child: Text(disciplina)),
-                    ],
+            children: disciplinas.map((disciplina) {
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: Colors.grey.shade300, width: 1.0),
                   ),
                 ),
-            ],
+                child: Row(
+                  children: [
+                    Container(
+                      width: 8.0,
+                      height: 8.0,
+                      margin: const EdgeInsets.only(right: 12.0),
+                      decoration: const BoxDecoration(
+                        color: Colors.blue,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        '${disciplina.id.toString().padLeft(9, '0')}  ${disciplina.nome}',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
           ),
         ),
         const SizedBox(height: 20),
