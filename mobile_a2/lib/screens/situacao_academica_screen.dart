@@ -1,74 +1,96 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../models/situacaoAcademica.dart';
+import '../providers/aluno_provider.dart';
+import '../services/situacaoAcademicaService.dart';
 
 class SituacaoAcademicaScreen extends StatelessWidget {
   const SituacaoAcademicaScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final alunoProvider = Provider.of<AlunoProvider>(context);
+    final aluno = alunoProvider.aluno;
+
+    if (aluno == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final situacao = SituacaoAcademicaService().getByAlunoId(aluno.id);
+
+    if (situacao == null) {
+      return const Center(child: Text('Nenhuma situação acadêmica encontrada.'));
+    }
+
     return Scaffold(
-      // ... (cabeçalho mantido igual)
+      appBar: AppBar(
+        title: const Text('Situação Acadêmica'),
+      ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ... (parte superior mantida igual)
-
-            const SizedBox(height: 20),
+            _buildTextField('Nº de Matrícula', aluno.matricula),
+            _buildTextField('Nome', aluno.nome),
+            _buildTextField('Curso', 'SISTEMAS DE INFORMAÇÃO'),
+            _buildTextField('Situação', 'Matriculado'),
+            const SizedBox(height: 16),
             const Text(
               'Documentos:',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
-            Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(4.0),
-              ),
-              child: Column(
-                children: [
-                  _buildDocumentItem('Foto', obrigatorio: true),
-                  _buildDocumentItem('Carteira de Identidade/RG', obrigatorio: true),
-                  _buildDocumentItem('Certidão de Nascimento/Casamento', obrigatorio: true),
-                  _buildDocumentItem('Histórico Escolar - Ensino Médio', obrigatorio: true),
-                  _buildDocumentItem('Certificado Militar/Reservista'),
-                  _buildDocumentItem('CPF (CIC)', obrigatorio: true),
-                  _buildDocumentItem('Diploma/Certificado Registrado', obrigatorio: true),
-                  _buildDocumentItem('Comprovante de Votação', obrigatorio: true),
-                  _buildDocumentItem('Comprovante de Vacina'),
-                  _buildDocumentItem('Título de Editor', obrigatorio: true),
-                ],
-              ),
-            ),
+            _buildDocList(situacao),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDocumentItem(String document, {bool obrigatorio = false}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: Colors.grey.shade300,
-            width: 1.0,
-          ),
+  Widget _buildTextField(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: TextField(
+        enabled: false,
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+          filled: true,
+          fillColor: Colors.grey.shade100,
         ),
+        controller: TextEditingController(text: value),
       ),
-      child: Row(
-        children: [
-          const Icon(Icons.description_outlined, size: 20, color: Colors.grey),
-          const SizedBox(width: 12),
-          Text(document),
-          if (obrigatorio)
-            const Padding(
-              padding: EdgeInsets.only(left: 8.0),
-              child: Text('(Obrigatório)', style: TextStyle(color: Colors.red)),
-            ),
-        ],
+    );
+  }
+
+  Widget _buildDocList(SituacaoAcademica s) {
+    return Column(
+      children: [
+        _buildDocRow('Foto', s.foto),
+        _buildDocRow('Carteira de Identidade/RG', s.rg),
+        _buildDocRow('Certidão de Nascimento/Casamento', s.certidaoNascimento),
+        _buildDocRow('Histórico Escolar - Ensino Médio', s.historicoEscolar),
+        _buildDocRow('Certificado Militar/Reservista', s.certificadoMilitar),
+        _buildDocRow('CPF (CIC)', s.cpf),
+        _buildDocRow('Diploma/Certificado Registrado', s.diploma),
+        _buildDocRow('Comprovante de Votação', s.comprovanteDeVotacao),
+        _buildDocRow('Comprovante de Vacina', s.comprovanteDeVacina),
+        _buildDocRow('Título de Eleitor', s.tituloEleitor),
+      ],
+    );
+  }
+
+  Widget _buildDocRow(String label, bool entregue) {
+    return ListTile(
+      dense: true,
+      leading: Icon(
+        entregue ? Icons.check_circle : Icons.cancel,
+        color: entregue ? Colors.green : Colors.red,
       ),
+      title: Text(label),
+      subtitle: const Text('(Obrigatório)'),
     );
   }
 }
