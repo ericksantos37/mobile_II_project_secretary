@@ -6,7 +6,8 @@ class Aluno {
   final String matricula;
   final String cpf;
   final int cursoId;
-  final Usuario usuario;
+  final String email;
+  final String senha;
 
-  Aluno({required this.id, required this.nome, required this.matricula, required this.cpf, required this.cursoId, required this.usuario});
+  Aluno({required this.id, required this.nome, required this.matricula, required this.cpf, required this.cursoId, required this.email, required this.senha});
 }

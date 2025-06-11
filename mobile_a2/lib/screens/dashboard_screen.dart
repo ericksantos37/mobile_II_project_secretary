@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../providers/aluno_provider.dart';
 
 class DashboardScreen extends StatelessWidget {
   final List<DashboardItem> items;
 
-  const DashboardScreen({super.key}) : items = const [
+  const DashboardScreen({super.key})
+      : items = const [
     DashboardItem(
       title: 'BOLETIM (SEMESTRE ATUAL)',
       description: 'Desempenho nas disciplinas do semestre atual',
@@ -36,6 +40,18 @@ class DashboardScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Secretaria'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
+            onPressed: () {
+              // Limpar o aluno logado
+              Provider.of<AlunoProvider>(context, listen: false).clearAluno();
+              // Voltar para a tela de login
+              Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+            },
+          ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -56,9 +72,9 @@ class DashboardScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildSection(item),
-                      _buildAccessButton('Acessar', () {
-                        Navigator.pushNamed(context, item.route);
-                      }),
+                    _buildAccessButton('Acessar', () {
+                      Navigator.pushNamed(context, item.route);
+                    }),
                   ],
                 ),
               ),

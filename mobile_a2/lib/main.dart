@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import 'providers/aluno_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/boletim_screen.dart';
@@ -8,10 +11,19 @@ import 'screens/grade_curricular_screen.dart';
 import 'screens/situacao_academica_screen.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AlunoProvider()),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -19,13 +31,13 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(primarySwatch: Colors.blue),
       initialRoute: '/',
       routes: {
-        '/': (context) => LoginScreen(),
-        '/dashboard': (context) => DashboardScreen(),
-        '/boletim': (context) => BoletimScreen(),
-        '/rematricula': (context) => RematriculaScreen(),
-        '/analise_curricular': (context) => AnaliseCurricularScreen(),
-        '/grade_curricular': (context) => GradeCurricularScreen(),
-        '/situacao_academica': (context) => SituacaoAcademicaScreen(),
+        '/': (context) => const LoginScreen(),
+        '/dashboard': (context) => const DashboardScreen(),
+        '/boletim': (context) => const BoletimScreen(),
+        '/rematricula': (context) => const RematriculaScreen(),
+        '/analise_curricular': (context) => const AnaliseCurricularScreen(),
+        '/grade_curricular': (context) => const GradeCurricularScreen(),
+        '/situacao_academica': (context) => const SituacaoAcademicaScreen(),
       },
     );
   }

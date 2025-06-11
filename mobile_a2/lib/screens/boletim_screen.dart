@@ -1,10 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../models/aluno.dart';
+import '../models/matricula_disciplina.dart';
+import '../providers/aluno_provider.dart';
+import '../services/matriculaDisciplinaService.dart';
+import '../services/disciplinaService.dart';
 
 class BoletimScreen extends StatelessWidget {
   const BoletimScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final alunoProvider = Provider.of<AlunoProvider>(context);
+    final aluno = alunoProvider.aluno;
+
+    if (aluno == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final matriculaService = MatriculaDisciplinaService();
+    final disciplinaService = DisciplinaService();
+
+    final disciplinasAluno = matriculaService.getByAluno(aluno.id);
+    print('ID do aluno logado: ${aluno.id}');
+    print('Disciplinas encontradas: ${disciplinasAluno.length}');
+    print('Disciplinas encontradas: ${disciplinasAluno}');
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Boletim Acadêmico'),
@@ -15,11 +37,11 @@ class BoletimScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(),
+            _buildHeader(aluno),
             const SizedBox(height: 20),
             _buildInfoCurso(),
             const SizedBox(height: 20),
-            _buildDisciplinasTable(),
+            _buildDisciplinasTable(disciplinasAluno, disciplinaService),
             const SizedBox(height: 20),
             _buildFooterInfo(),
           ],
@@ -28,25 +50,24 @@ class BoletimScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader() {
-    return const Column(
+
+  Widget _buildHeader(Aluno aluno) {
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           'SISTEMAS DE INFORMAÇÃO (Matriculado)',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.blue,
-          ),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue),
         ),
-        SizedBox(height: 8),
-        Text(
+        const SizedBox(height: 8),
+        const Text(
           'Boletim Acadêmico - SISTEMAS DE INFORMAÇÃO',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Matrícula: ${aluno.matricula}',
+          style: const TextStyle(fontSize: 14),
         ),
       ],
     );
@@ -58,10 +79,7 @@ class BoletimScreen extends StatelessWidget {
       children: [
         Text(
           'Disciplinas do Semestre Letivo',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         SizedBox(height: 8),
         Text(
@@ -72,7 +90,10 @@ class BoletimScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDisciplinasTable() {
+  Widget _buildDisciplinasTable(
+      List<MatriculaDisciplina> disciplinas,
+      DisciplinaService disciplinaService,
+      ) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: DataTable(
@@ -83,82 +104,27 @@ class BoletimScreen extends StatelessWidget {
         columns: const [
           DataColumn(label: Text('Código')),
           DataColumn(label: Text('Disciplina')),
-          DataColumn(label: Text('Faltas')),
+          DataColumn(label: Text('Faltas %')),
           DataColumn(label: Text('A1')),
           DataColumn(label: Text('A2')),
-          DataColumn(label: Text('Final')),
-          DataColumn(label: Text('Média Sem.')),
-          DataColumn(label: Text('Média Final')),
+          DataColumn(label: Text('Média')),
           DataColumn(label: Text('Situação')),
         ],
-        rows: const [
-          DataRow(cells: [
-            DataCell(Text('011001171')),
-            DataCell(Text('ELABORAÇÃO E GESTÃO DE PROJETOS')),
-            DataCell(Text('')),
-            DataCell(Text('')),
-            DataCell(Text('')),
-            DataCell(Text('')),
-            DataCell(Text('')),
-            DataCell(Text('')),
-            DataCell(Text('Matriculado')),
-          ]),
-          DataRow(cells: [
-            DataCell(Text('011001173')),
-            DataCell(Text('MINERAÇÃO DE DADOS')),
-            DataCell(Text('')),
-            DataCell(Text('')),
-            DataCell(Text('')),
-            DataCell(Text('')),
-            DataCell(Text('')),
-            DataCell(Text('')),
-            DataCell(Text('Matriculado')),
-          ]),
-          DataRow(cells: [
-            DataCell(Text('011001174')),
-            DataCell(Text('PROGRAMAÇÃO PARA DISPOSITIVOS MÓVEIS II')),
-            DataCell(Text('')),
-            DataCell(Text('')),
-            DataCell(Text('')),
-            DataCell(Text('')),
-            DataCell(Text('')),
-            DataCell(Text('')),
-            DataCell(Text('Matriculado')),
-          ]),
-          DataRow(cells: [
-            DataCell(Text('011001172')),
-            DataCell(Text('SISTEMAS DISTRIBUÍDOS')),
-            DataCell(Text('')),
-            DataCell(Text('')),
-            DataCell(Text('')),
-            DataCell(Text('')),
-            DataCell(Text('')),
-            DataCell(Text('')),
-            DataCell(Text('Matriculado')),
-          ]),
-          DataRow(cells: [
-            DataCell(Text('011001188')),
-            DataCell(Text('TÓPICOS ESPECIAIS EM PROGRAMAÇÃO')),
-            DataCell(Text('')),
-            DataCell(Text('')),
-            DataCell(Text('')),
-            DataCell(Text('')),
-            DataCell(Text('')),
-            DataCell(Text('')),
-            DataCell(Text('Matriculado')),
-          ]),
-          DataRow(cells: [
-            DataCell(Text('011001175')),
-            DataCell(Text('TRABALHO DE CONCLUSÃO DE CURSO I')),
-            DataCell(Text('')),
-            DataCell(Text('')),
-            DataCell(Text('')),
-            DataCell(Text('')),
-            DataCell(Text('')),
-            DataCell(Text('')),
-            DataCell(Text('Matriculado')),
-          ]),
-        ],
+        rows: disciplinas.map((m) {
+          final disciplina = disciplinaService.getById(m.disciplinaId);
+          final nomeDisciplina = disciplina?.nome ?? 'Desconhecida';
+          final media = ((m.notaA1 + m.notaA2) / 2).toStringAsFixed(1);
+
+          return DataRow(cells: [
+            DataCell(Text('${m.id}')),
+            DataCell(Text(nomeDisciplina)),
+            DataCell(Text('${m.frequencia.toStringAsFixed(0)}%')),
+            DataCell(Text(m.notaA1.toStringAsFixed(1))),
+            DataCell(Text(m.notaA2.toStringAsFixed(1))),
+            DataCell(Text(media)),
+            DataCell(Text(m.status)),
+          ]);
+        }).toList(),
       ),
     );
   }
