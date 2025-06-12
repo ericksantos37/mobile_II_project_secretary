@@ -9,12 +9,14 @@ import 'screens/rematricula_screen.dart';
 import 'screens/analise_curricular_screen.dart';
 import 'screens/grade_curricular_screen.dart';
 import 'screens/situacao_academica_screen.dart';
+import 'services/matriculaDisciplinaService.dart';
 
 void main() {
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AlunoProvider()),
+        ChangeNotifierProvider(create: (_) => MatriculaDisciplinaService()), // <-- Adicionado aqui
       ],
       child: const MyApp(),
     ),

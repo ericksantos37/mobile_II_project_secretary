@@ -26,8 +26,7 @@ class BoletimScreen extends StatelessWidget {
     final cursoService = CursoService();
 
     final disciplinasAluno = matriculaService.getByAluno(aluno.id);
-    final disciplina = disciplinaService.getById(disciplinasAluno.first.disciplinaId);
-    final curso = cursoService.getById(disciplina!.cursoId);
+    final curso = cursoService.getById(aluno.cursoId);
 
     if (curso == null) {
       return const Center(child: CircularProgressIndicator());
@@ -100,6 +99,12 @@ class BoletimScreen extends StatelessWidget {
       List<MatriculaDisciplina> disciplinas,
       DisciplinaService disciplinaService,
       ) {
+    if (disciplinas.isEmpty) {
+      return const Center(
+        child: Text('Nenhuma disciplina matriculada ainda.'),
+      );
+    }
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: DataTable(
@@ -122,7 +127,7 @@ class BoletimScreen extends StatelessWidget {
           final media = ((m.notaA1 + m.notaA2) / 2).toStringAsFixed(1);
 
           return DataRow(cells: [
-            DataCell(Text('${m.id}')),
+            DataCell(Text('${disciplina?.id ?? '-'}')),
             DataCell(Text(nomeDisciplina)),
             DataCell(Text('${m.frequencia.toStringAsFixed(0)}%')),
             DataCell(Text(m.notaA1.toStringAsFixed(1))),
@@ -134,6 +139,7 @@ class BoletimScreen extends StatelessWidget {
       ),
     );
   }
+
 
   Widget _buildFooterInfo() {
     return const Column(

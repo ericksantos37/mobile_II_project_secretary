@@ -1,174 +1,112 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-class Disciplina {
-  final String codigo;
-  final String nome;
-  bool selecionada;
-
-  Disciplina({
-    required this.codigo,
-    required this.nome,
-    this.selecionada = false,
-  });
-}
+import '../models/matricula_disciplina.dart';
+import '../models/disciplina.dart';
+import '../providers/aluno_provider.dart';
+import '../services/disciplinaService.dart';
+import '../services/matriculaDisciplinaService.dart';
 
 class RematriculaScreen extends StatefulWidget {
-
-  const RematriculaScreen({
-    super.key
-  });
+  const RematriculaScreen({super.key});
 
   @override
   State<RematriculaScreen> createState() => _RematriculaScreenState();
 }
 
 class _RematriculaScreenState extends State<RematriculaScreen> {
-  late List<Disciplina> disciplinas;
-
-  @override
-  void initState() {
-    super.initState();
-    // Carrega as disciplinas do período atual do aluno
-    disciplinas = _carregarDisciplinasDoPeriodo(1);
-  }
-
-  List<Disciplina> _carregarDisciplinasDoPeriodo(int periodo) {
-    // Simulação de disciplinas por período
-    // Na prática, isso viria de um banco de dados ou API
-    final todasDisciplinas = [
-      Disciplina(codigo: "MAT101", nome: "Cálculo I"),
-      Disciplina(codigo: "FIS101", nome: "Física I"),
-      Disciplina(codigo: "PROG101", nome: "Programação I"),
-      Disciplina(codigo: "MAT102", nome: "Cálculo II"),
-      Disciplina(codigo: "FIS102", nome: "Física II"),
-      Disciplina(codigo: "PROG102", nome: "Programação II"),
-      Disciplina(codigo: "ALG101", nome: "Álgebra Linear"),
-      Disciplina(codigo: "EST101", nome: "Estatística"),
-    ];
-
-    // Simulação - cada período tem 3 disciplinas
-    final startIndex = (periodo - 1) * 3;
-    return todasDisciplinas.sublist(
-      startIndex,
-      startIndex + 3,
-    );
-  }
+  final DisciplinaService disciplinaService = DisciplinaService();
+  final Set<int> selectedDisciplinas = {};
 
   @override
   Widget build(BuildContext context) {
+    final aluno = Provider.of<AlunoProvider>(context).aluno;
+    final matriculaService = Provider.of<MatriculaDisciplinaService>(context);
+
+    if (aluno == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final matriculasAluno = matriculaService.getByAluno(aluno.id);
+    final disciplinasCursadas = matriculasAluno.map((m) => m.disciplinaId).toSet();
+    final possuiEmAndamento = matriculasAluno.any((m) => m.status == 'Em andamento');
+    final disciplinasCurso = disciplinaService.getByCursoId(aluno.cursoId);
+    final disciplinasPendentes = disciplinasCurso.where((d) => !disciplinasCursadas.contains(d.id)).toList();
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('Rematrícula - ${1}º Período'),
-        centerTitle: true,
+        title: const Text('Rematrícula Online'),
       ),
-      body: Column(
-        children: [
-          // Cabeçalho informativo
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              'Selecione as disciplinas para o ${1}º período:',
-              style: const TextStyle(fontSize: 18),
-              textAlign: TextAlign.center,
-            ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: possuiEmAndamento
+            ? const Center(
+          child: Text(
+            'Você já possui disciplinas em andamento.\nA rematrícula não está disponível.',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
           ),
-
-          // Lista de disciplinas
-          Expanded(
-            child: ListView.builder(
-              itemCount: disciplinas.length,
-              itemBuilder: (context, index) {
-                final disciplina = disciplinas[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  child: CheckboxListTile(
+        )
+            : Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Selecione as disciplinas para rematrícula:',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            Expanded(
+              child: ListView.builder(
+                itemCount: disciplinasPendentes.length,
+                itemBuilder: (context, index) {
+                  final disciplina = disciplinasPendentes[index];
+                  return CheckboxListTile(
                     title: Text(disciplina.nome),
-                    subtitle: Text('Código: ${disciplina.codigo}'),
-                    value: disciplina.selecionada,
-                    onChanged: (bool? value) {
+                    subtitle: Text('Período ${disciplina.periodo}'),
+                    value: selectedDisciplinas.contains(disciplina.id),
+                    onChanged: (selected) {
                       setState(() {
-                        disciplina.selecionada = value!;
+                        if (selected == true) {
+                          selectedDisciplinas.add(disciplina.id);
+                        } else {
+                          selectedDisciplinas.remove(disciplina.id);
+                        }
                       });
                     },
-                    secondary: const Icon(Icons.book),
-                  ),
-                );
-              },
-            ),
-          ),
-
-          // Resumo e botão de confirmação
-          Container(
-            padding: const EdgeInsets.all(16),
-            color: Colors.grey[200],
-            child: Column(
-              children: [
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      final disciplinasSelecionadas = disciplinas.where((d) => d.selecionada).toList();
-                      if (disciplinasSelecionadas.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Selecione pelo menos uma disciplina')),
-                        );
-                        return;
-                      }
-
-                      _confirmarMatricula(context, disciplinasSelecionadas);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: const Text(
-                      'CONFIRMAR MATRÍCULA',
-                      style: TextStyle(fontSize: 18),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _confirmarMatricula(BuildContext context, List<Disciplina> disciplinas) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Confirmar Matrícula'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Você está matriculando nas seguintes disciplinas:'),
-              const SizedBox(height: 16),
-              ...disciplinas.map((d) => Text('- ${d.nome} (${d.codigo})')).toList(),
-              const SizedBox(height: 16),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar'),
+                  );
+                },
+              ),
             ),
             ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
+              onPressed: selectedDisciplinas.isEmpty
+                  ? null
+                  : () {
+                for (var id in selectedDisciplinas) {
+                  final novaMatricula = MatriculaDisciplina(
+                    id: 0, // será atribuído no service
+                    alunoId: aluno.id,
+                    disciplinaId: id,
+                    notaA1: 0.0,
+                    notaA2: 0.0,
+                    frequencia: 0.0,
+                    status: 'Em andamento',
+                  );
+                  matriculaService.addMatricula(novaMatricula);
+                }
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Matrícula confirmada com sucesso!')),
+                  const SnackBar(content: Text('Rematrícula realizada com sucesso!')),
                 );
-                // Aqui você pode adicionar a lógica para salvar no banco de dados
+                setState(() {
+                  selectedDisciplinas.clear();
+                });
               },
-              child: const Text('Confirmar'),
+              child: const Text('Confirmar Rematrícula'),
             ),
           ],
-        );
-      },
+        ),
+      ),
     );
   }
 }

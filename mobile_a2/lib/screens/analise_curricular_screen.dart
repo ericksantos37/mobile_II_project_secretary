@@ -36,11 +36,20 @@ class AnaliseCurricularScreen extends StatelessWidget {
         .whereType<Disciplina>()
         .toList();
 
-    // Obter disciplinas pendentes
-    final idsConcluidos = disciplinasConcluidas.map((d) => d.id).toSet();
-    final disciplinasPendentes =
-    todasDisciplinas.where((d) => !idsConcluidos.contains(d.id)).toList();
+    final disciplinasEmAndamento = matriculasAluno
+        .where((m) => m.status.toLowerCase() == 'em andamento')
+        .map((m) => disciplinaService.getById(m.disciplinaId))
+        .whereType<Disciplina>()
+        .toList();
 
+// Pendentes = todas - concluídas - em andamento
+    final idsConcluidas = disciplinasConcluidas.map((d) => d.id).toSet();
+    final idsEmAndamento = disciplinasEmAndamento.map((d) => d.id).toSet();
+    final disciplinasPendentes = todasDisciplinas
+        .where((d) => !idsConcluidas.contains(d.id) && !idsEmAndamento.contains(d.id))
+        .toList();
+
+// Progresso: apenas concluídas contam
     final total = todasDisciplinas.length;
     final concluido = disciplinasConcluidas.length;
     final progresso = total > 0 ? concluido / total : 0.0;
@@ -92,6 +101,13 @@ class AnaliseCurricularScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             _buildDisciplinaList(disciplinasConcluidas, Colors.green),
+
+            const SizedBox(height: 20),
+
+            const Text('Disciplinas em Andamento',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            _buildDisciplinaList(disciplinasEmAndamento, Colors.orange),
 
             const SizedBox(height: 20),
 

@@ -1,42 +1,20 @@
+import 'package:flutter/material.dart';
 import '../models/matricula_disciplina.dart';
 
-class MatriculaDisciplinaService {
-  final List<MatriculaDisciplina> _matriculas = [
-    MatriculaDisciplina(
-      id: 1,
-      alunoId: 1,
-      disciplinaId: 1,
-      notaA1: 7.5,
-      notaA2: 8.0,
-      frequencia: 95.0,
-      status: 'Aprovado',
-    ),
-    MatriculaDisciplina(
-      id: 2,
-      alunoId: 2,
-      disciplinaId: 4,
-      notaA1: 5.0,
-      notaA2: 6.0,
-      frequencia: 80.0,
-      status: 'Em andamento',
-    ),
-    MatriculaDisciplina(
-      id: 3,
-      alunoId: 3,
-      disciplinaId: 7,
-      notaA1: 5.0,
-      notaA2: 6.0,
-      frequencia: 80.0,
-      status: 'Em andamento',
-    ),
-  ];
+class MatriculaDisciplinaService extends ChangeNotifier {
+  final List<MatriculaDisciplina> _matriculas = [];
+  int _nextId = 1; // ID incremental
 
   List<MatriculaDisciplina> getAll() {
     return List.unmodifiable(_matriculas);
   }
 
   MatriculaDisciplina? getById(int id) {
-    return _matriculas.firstWhere((m) => m.id == id, orElse: () => null as MatriculaDisciplina);
+    try {
+      return _matriculas.firstWhere((m) => m.id == id);
+    } catch (e) {
+      return null;
+    }
   }
 
   List<MatriculaDisciplina> getByAluno(int alunoId) {
@@ -45,5 +23,19 @@ class MatriculaDisciplinaService {
 
   List<MatriculaDisciplina> getByDisciplina(int disciplinaId) {
     return _matriculas.where((m) => m.disciplinaId == disciplinaId).toList();
+  }
+
+  void addMatricula(MatriculaDisciplina novaMatricula) {
+    final matriculaComId = MatriculaDisciplina(
+      id: _nextId++,
+      alunoId: novaMatricula.alunoId,
+      disciplinaId: novaMatricula.disciplinaId,
+      notaA1: novaMatricula.notaA1,
+      notaA2: novaMatricula.notaA2,
+      frequencia: novaMatricula.frequencia,
+      status: novaMatricula.status,
+    );
+    _matriculas.add(matriculaComId);
+    notifyListeners(); // Notifica a UI
   }
 }
