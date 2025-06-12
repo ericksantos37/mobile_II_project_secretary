@@ -1,19 +1,22 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import '../models/matricula_disciplina.dart';
 
 class MatriculaDisciplinaService extends ChangeNotifier {
-  final List<MatriculaDisciplina> _matriculas = [];
-  int _nextId = 1; // ID incremental
+  final String baseUrl = 'https://684a377d165d05c5d357ff2b.mockapi.io/api/v1/matricula_disciplina';
+  List<MatriculaDisciplina> _matriculas = [];
 
-  List<MatriculaDisciplina> getAll() {
-    return List.unmodifiable(_matriculas);
-  }
+  List<MatriculaDisciplina> get all => _matriculas;
 
-  MatriculaDisciplina? getById(int id) {
-    try {
-      return _matriculas.firstWhere((m) => m.id == id);
-    } catch (e) {
-      return null;
+  Future<void> fetchMatriculas() async {
+    final response = await http.get(Uri.parse(baseUrl));
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      _matriculas = data.map((e) => MatriculaDisciplina.fromJson(e)).toList();
+      notifyListeners();
+    } else {
+      throw Exception('Erro ao carregar matrículas');
     }
   }
 
@@ -21,21 +24,19 @@ class MatriculaDisciplinaService extends ChangeNotifier {
     return _matriculas.where((m) => m.alunoId == alunoId).toList();
   }
 
-  List<MatriculaDisciplina> getByDisciplina(int disciplinaId) {
-    return _matriculas.where((m) => m.disciplinaId == disciplinaId).toList();
-  }
-
-  void addMatricula(MatriculaDisciplina novaMatricula) {
-    final matriculaComId = MatriculaDisciplina(
-      id: _nextId++,
-      alunoId: novaMatricula.alunoId,
-      disciplinaId: novaMatricula.disciplinaId,
-      notaA1: novaMatricula.notaA1,
-      notaA2: novaMatricula.notaA2,
-      frequencia: novaMatricula.frequencia,
-      status: novaMatricula.status,
+  Future<void> addMatricula(MatriculaDisciplina novaMatricula) async {
+    final response = await http.post(
+      Uri.parse(baseUrl),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode(novaMatricula.toJson()),
     );
-    _matriculas.add(matriculaComId);
-    notifyListeners(); // Notifica a UI
+
+    if (response.statusCode == 201) {
+      final created = MatriculaDisciplina.fromJson(json.decode(response.body));
+      _matriculas.add(created);
+      notifyListeners();
+    } else {
+      throw Exception('Erro ao adicionar matrícula');
+    }
   }
 }

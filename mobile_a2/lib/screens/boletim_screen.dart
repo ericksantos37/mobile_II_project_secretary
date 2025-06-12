@@ -21,36 +21,49 @@ class BoletimScreen extends StatelessWidget {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final matriculaService = MatriculaDisciplinaService();
-    final disciplinaService = DisciplinaService();
-    final cursoService = CursoService();
-
-    final disciplinasAluno = matriculaService.getByAluno(aluno.id);
-    final curso = cursoService.getById(aluno.cursoId);
+    final curso = CursoService().getById(aluno.cursoId);
 
     if (curso == null) {
       return const Center(child: CircularProgressIndicator());
     }
+
+    final matriculaService = MatriculaDisciplinaService();
+    final disciplinaService = DisciplinaService();
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Boletim Acadêmico'),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(aluno, curso),
-            const SizedBox(height: 20),
-            _buildInfoCurso(),
-            const SizedBox(height: 20),
-            _buildDisciplinasTable(disciplinasAluno, disciplinaService),
-            const SizedBox(height: 20),
-            _buildFooterInfo(),
-          ],
-        ),
+      body: FutureBuilder(
+        future: matriculaService.fetchMatriculas(), // <-- Busca da API aqui
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return Center(child: Text('Erro ao carregar boletim'));
+          }
+
+          final disciplinasAluno = matriculaService.getByAluno(aluno.id);
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(aluno, curso),
+                const SizedBox(height: 20),
+                _buildInfoCurso(),
+                const SizedBox(height: 20),
+                _buildDisciplinasTable(disciplinasAluno, disciplinaService),
+                const SizedBox(height: 20),
+                _buildFooterInfo(),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

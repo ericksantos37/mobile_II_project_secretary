@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../models/situacaoAcademica.dart';
 import '../providers/aluno_provider.dart';
+import '../services/cursoService.dart';
 import '../services/situacaoAcademicaService.dart';
 
 class SituacaoAcademicaScreen extends StatelessWidget {
@@ -12,12 +13,18 @@ class SituacaoAcademicaScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final alunoProvider = Provider.of<AlunoProvider>(context);
     final aluno = alunoProvider.aluno;
+    final cursoService = CursoService();
 
     if (aluno == null) {
       return const Center(child: CircularProgressIndicator());
     }
 
     final situacao = SituacaoAcademicaService().getByAlunoId(aluno.id);
+    final curso = cursoService.getById(aluno.cursoId);
+
+    if (curso == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     if (situacao == null) {
       return const Center(child: Text('Nenhuma situação acadêmica encontrada.'));
@@ -34,7 +41,7 @@ class SituacaoAcademicaScreen extends StatelessWidget {
           children: [
             _buildTextField('Nº de Matrícula', aluno.matricula),
             _buildTextField('Nome', aluno.nome),
-            _buildTextField('Curso', 'SISTEMAS DE INFORMAÇÃO'),
+            _buildTextField('Curso', curso.nome),
             _buildTextField('Situação', 'Matriculado'),
             const SizedBox(height: 16),
             const Text(

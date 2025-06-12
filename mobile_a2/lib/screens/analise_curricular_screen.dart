@@ -9,118 +9,124 @@ import '../services/disciplinaService.dart';
 import '../services/matriculaDisciplinaService.dart';
 import '../providers/aluno_provider.dart';
 
-class AnaliseCurricularScreen extends StatelessWidget {
+class AnaliseCurricularScreen extends StatefulWidget {
   const AnaliseCurricularScreen({super.key});
+
+  @override
+  State<AnaliseCurricularScreen> createState() => _AnaliseCurricularScreenState();
+}
+
+class _AnaliseCurricularScreenState extends State<AnaliseCurricularScreen> {
+  late Future<void> _fetchFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    final matriculaService = Provider.of<MatriculaDisciplinaService>(context, listen: false);
+    _fetchFuture = matriculaService.fetchMatriculas();
+  }
 
   @override
   Widget build(BuildContext context) {
     final alunoProvider = Provider.of<AlunoProvider>(context);
     final aluno = alunoProvider.aluno;
+    final matriculaService = Provider.of<MatriculaDisciplinaService>(context);
 
     if (aluno == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final cursoService = CursoService();
-    final disciplinaService = DisciplinaService();
-    final matriculaService = MatriculaDisciplinaService();
+    return FutureBuilder(
+      future: _fetchFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        } else if (snapshot.hasError) {
+          return Scaffold(body: Center(child: Text('Erro ao carregar matrículas: ${snapshot.error}')));
+        }
 
-    final curso = cursoService.getById(aluno.cursoId);
-    final todasDisciplinas = disciplinaService.getByCursoId(aluno.cursoId);
-    final matriculasAluno = matriculaService.getByAluno(aluno.id);
+        final cursoService = CursoService();
+        final disciplinaService = DisciplinaService();
 
-    // Obter disciplinas concluídas
-    final disciplinasConcluidas = matriculasAluno
-        .where((m) => m.status.toLowerCase() == 'aprovado')
-        .map((m) => disciplinaService.getById(m.disciplinaId))
-        .whereType<Disciplina>()
-        .toList();
+        final curso = cursoService.getById(aluno.cursoId);
+        final todasDisciplinas = disciplinaService.getByCursoId(aluno.cursoId);
+        final matriculasAluno = matriculaService.getByAluno(aluno.id);
 
-    final disciplinasEmAndamento = matriculasAluno
-        .where((m) => m.status.toLowerCase() == 'em andamento')
-        .map((m) => disciplinaService.getById(m.disciplinaId))
-        .whereType<Disciplina>()
-        .toList();
+        final disciplinasConcluidas = matriculasAluno
+            .where((m) => m.status.toLowerCase() == 'aprovado')
+            .map((m) => disciplinaService.getById(m.disciplinaId))
+            .whereType<Disciplina>()
+            .toList();
 
-// Pendentes = todas - concluídas - em andamento
-    final idsConcluidas = disciplinasConcluidas.map((d) => d.id).toSet();
-    final idsEmAndamento = disciplinasEmAndamento.map((d) => d.id).toSet();
-    final disciplinasPendentes = todasDisciplinas
-        .where((d) => !idsConcluidas.contains(d.id) && !idsEmAndamento.contains(d.id))
-        .toList();
+        final disciplinasEmAndamento = matriculasAluno
+            .where((m) => m.status.toLowerCase() == 'em andamento')
+            .map((m) => disciplinaService.getById(m.disciplinaId))
+            .whereType<Disciplina>()
+            .toList();
 
-// Progresso: apenas concluídas contam
-    final total = todasDisciplinas.length;
-    final concluido = disciplinasConcluidas.length;
-    final progresso = total > 0 ? concluido / total : 0.0;
+        final idsConcluidas = disciplinasConcluidas.map((d) => d.id).toSet();
+        final idsEmAndamento = disciplinasEmAndamento.map((d) => d.id).toSet();
+        final disciplinasPendentes = todasDisciplinas
+            .where((d) => !idsConcluidas.contains(d.id) && !idsEmAndamento.contains(d.id))
+            .toList();
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('${curso?.nome ?? "Curso"} (Matriculado)'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => Navigator.pop(context),
-            tooltip: 'Voltar',
+        final total = todasDisciplinas.length;
+        final concluido = disciplinasConcluidas.length;
+        final progresso = total > 0 ? concluido / total : 0.0;
+
+        return Scaffold(
+          appBar: AppBar(
+            title: Text('${curso?.nome ?? "Curso"} (Matriculado)'),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => Navigator.pop(context),
+                tooltip: 'Voltar',
+              ),
+            ],
           ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Análise Curricular',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-
-            // Barra de Progresso
-            Column(
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Progresso no curso:'),
-                const SizedBox(height: 8),
-                LinearProgressIndicator(
-                  value: progresso,
-                  minHeight: 10,
-                  backgroundColor: Colors.grey.shade300,
-                  color: Colors.blue,
+                const Text(
+                  'Análise Curricular',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
+                const SizedBox(height: 20),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Progresso no curso:'),
+                    const SizedBox(height: 8),
+                    LinearProgressIndicator(
+                      value: progresso,
+                      minHeight: 10,
+                      backgroundColor: Colors.grey.shade300,
+                      color: Colors.blue,
+                    ),
+                    const SizedBox(height: 8),
+                    Text('${(progresso * 100).toStringAsFixed(1)}% concluído ($concluido de $total disciplinas)'),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                const Text('Disciplinas Concluídas', style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
-                Text('${(progresso * 100).toStringAsFixed(1)}% concluído ($concluido de $total disciplinas)'),
+                _buildDisciplinaList(disciplinasConcluidas, Colors.green),
+                const SizedBox(height: 20),
+                const Text('Disciplinas em Andamento', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                _buildDisciplinaList(disciplinasEmAndamento, Colors.orange),
+                const SizedBox(height: 20),
+                const Text('Disciplinas Pendentes', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                _buildDisciplinaList(disciplinasPendentes, Colors.red),
               ],
             ),
-            const SizedBox(height: 20),
-
-            // Disciplinas concluídas
-            const Text(
-              'Disciplinas Concluídas',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            _buildDisciplinaList(disciplinasConcluidas, Colors.green),
-
-            const SizedBox(height: 20),
-
-            const Text('Disciplinas em Andamento',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            _buildDisciplinaList(disciplinasEmAndamento, Colors.orange),
-
-            const SizedBox(height: 20),
-
-            // Disciplinas pendentes
-            const Text(
-              'Disciplinas Pendentes',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            _buildDisciplinaList(disciplinasPendentes, Colors.red),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -136,9 +142,7 @@ class AnaliseCurricularScreen extends StatelessWidget {
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: Colors.grey.shade300),
-              ),
+              border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
             ),
             child: Row(
               children: [
@@ -151,9 +155,7 @@ class AnaliseCurricularScreen extends StatelessWidget {
                     shape: BoxShape.circle,
                   ),
                 ),
-                Expanded(
-                  child: Text('${d.nome} (${d.cargaHoraria}h)'),
-                ),
+                Expanded(child: Text('${d.nome} (${d.cargaHoraria}h)')),
               ],
             ),
           );
